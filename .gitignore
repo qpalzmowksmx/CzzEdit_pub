@@ -1,0 +1,37 @@
+# Local recordings, accounts, runtime and generated exports
+.czzedit/
+.venv/
+venv/
+.env
+.env.*
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.log
+logs/
+exports/
+recordings/
+captures/
+playwright-report/
+test-results/
+*storage-state*.json
+*cookies*.json
+*credentials*.json
+
+# Python/build/editor/OS files
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.DS_Store
+._*
+__MACOSX/
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+.codex/
+.agents/

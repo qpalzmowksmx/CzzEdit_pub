@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CzzEdit · 다시보기 편집점</title>
+<style>
+:root{color-scheme:dark;--bg:#101715;--card:#1a2420;--line:#34483e;--text:#edf5ef;--muted:#acbfb2;--green:#95e6af}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,sans-serif}
+main{max-width:1440px;margin:auto;padding:38px 24px 70px}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+h1{margin:0;font-size:30px;letter-spacing:-1px}h2{font-size:19px;margin:0 0 14px}p{margin:8px 0}.muted,small{color:var(--muted)}
+.badge{border:1px solid var(--line);border-radius:99px;padding:4px 12px;color:var(--green);font-size:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;margin-bottom:20px}
+label{display:block;margin:12px 0 7px}input[type=url]{width:100%;background:#101815;color:var(--text);border:1px solid #506b5c;border-radius:8px;padding:13px;font:inherit}
+input:focus,button:focus,a:focus{outline:2px solid var(--green);outline-offset:3px}.options{display:flex;flex-wrap:wrap;gap:20px;font-size:14px}
+button,.download{cursor:pointer;background:var(--green);color:#0c2715;border:0;border-radius:8px;padding:10px 17px;font:600 14px system-ui}
+button.secondary,.download{background:transparent;color:var(--text);border:1px solid #5a7465;text-decoration:none}
+button:disabled{opacity:.45;cursor:wait}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.status{display:flex;align-items:center;gap:12px}.dot{width:9px;height:9px;border-radius:50%;background:var(--green)}
+progress{width:100%;height:9px;accent-color:var(--green)}.error{color:#ffbca9;white-space:pre-wrap}.grid{display:grid;grid-template-columns:300px 1fr;gap:20px}
+.job{border-top:1px solid var(--line);padding:16px 0}.job strong{display:block;overflow-wrap:anywhere}.job .actions{margin-top:9px}
+.job button{padding:7px 10px;font-size:12px}.job p{font-size:12px}.empty{padding:30px 0;color:var(--muted)}
+.marker{padding:18px 0;border-top:1px solid var(--line)}.marker h3{font-size:17px;margin:0 0 7px}.marker p{font-size:13px}
+.marker a{color:var(--green)}canvas{width:100%;height:110px;margin:16px 0;border-bottom:1px solid var(--line)}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.download{padding:6px 10px;font-size:12px}
+.marker.selected{border-left:3px solid var(--green);padding-left:12px}.marker-title{font-size:17px;padding:0;background:none;color:var(--green);text-align:left;text-decoration:underline}
+#chat-panel{border:1px solid var(--green);border-radius:12px;padding:16px;margin:18px 0;scroll-margin-top:16px}
+#chat-list{max-height:420px;overflow:auto;margin:12px 0}.chat-row{padding:9px;border-bottom:1px solid var(--line);overflow-wrap:anywhere;white-space:pre-wrap;font-size:13px}.chat-row.evidence{background:#263e2d;border-left:3px solid var(--green)}.chat-row a{color:var(--green);margin-right:8px}.chat-author{color:var(--muted);font-size:11px}
+[hidden]{display:none!important}@media(max-width:800px){.grid{grid-template-columns:1fr}main{padding:22px 16px}.card{padding:18px}header{align-items:start;gap:10px}}
+.watch-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(240px,1fr);gap:18px}.watch-grid>*{min-width:0}
+#vod{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px}#player-status{font-size:13px}
+.chat-row.current{outline:2px solid var(--green);outline-offset:-2px}.chat-row.future{opacity:.45}
+.chat-time{background:none;border:0;color:var(--green);padding:0 8px 0 0;font-size:13px}.chat-row{position:relative}
+#chat-list{height:380px;max-height:50vh;overscroll-behavior:contain;position:relative}.watch-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.watch-tools label{margin:0}select{background:var(--card);color:var(--text);padding:6px;border:1px solid var(--line)}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}}@media(max-width:650px){.watch-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<header><div><h1>CzzEdit<span style="color:var(--green)">.</span></h1><p class="muted">다시보기와 생방송 채팅에서 편집할 순간을 찾으세요.</p></div><span class="badge">로컬 · VOD / LIVE</span></header>
+<section class="card">
+<h2>다시보기 채팅 수집</h2>
+<p class="muted">방송자 계정 없이 시작합니다. 저장한 채팅에서 웃음, 급증, 반복 표현과 감정 반응을 찾아 편집 후보로 남깁니다.</p>
+<form id="collect-form">
+<label for="url">치지직 다시보기 URL</label>
+<input id="url" type="url" required placeholder="https://chzzk.naver.com/video/영상번호">
+<div class="options">
+<label><input id="sensitive" type="checkbox"> 소규모 채널용 민감도</label>
+<label><input id="login" type="checkbox"> 본인 시청 계정으로 로그인하기</label>
+</div>
+<small>공개 영상은 로그인 없이 시도합니다. 로그인 모드는 별도 브라우저 설치가 필요하며, 본인이 볼 수 있는 영상에만 접근합니다.</small>
+<div class="actions"><button id="collect" type="submit">수집하고 편집점 찾기</button><button id="demo" class="secondary" type="button">샘플로 먼저 체험</button></div>
+</form>
+</section>
+<section class="card" id="live-card">
+<h2>라이브 채팅 수집</h2>
+<p class="muted">공개 생방송의 채팅을 로그인 없이 기록합니다. 접속 전 채팅과 연결이 끊긴 구간은 복구를 보장하지 않습니다.</p>
+<form id="live-form">
+<label for="live-url">치지직 라이브 URL</label>
+<input id="live-url" type="url" required placeholder="https://chzzk.naver.com/live/채널ID">
+<div class="options"><label><input id="live-sensitive" type="checkbox"> 소규모 채널용 민감도</label><label><input id="live-viewers" type="checkbox" checked> 웹 시청자 수 함께 기록·보정</label></div>
+<div class="actions"><button type="button" class="secondary" id="live-inspect">연결 확인</button><button type="submit" id="live-start">실시간 수집 시작</button><button type="button" id="live-stop" class="secondary" hidden>라이브 중단</button></div>
+</form>
+<p id="live-status" role="status">공개 라이브 URL을 입력해 주세요.</p>
+<p id="live-note" class="muted"></p><p id="live-error" class="error" role="alert"></p>
+<label for="live-sessions">저장한 라이브</label><select id="live-sessions"><option value="">기록 선택</option></select>
+<button id="live-resume" type="button" class="secondary" hidden>같은 방송 이어 기록</button>
+<div id="live-workspace" hidden>
+<div class="actions"><button id="live-export" class="secondary">현재까지 TXT·편집점 저장</button><button id="live-follow" class="secondary">최신 채팅 따라가기</button></div>
+<div id="live-downloads" class="links"></div>
+<div class="watch-grid" style="margin-top:16px"><div><h3>실시간 채팅</h3><p class="muted">평소 대화도 모두 저장합니다. 화면에는 최근 300건을 표시합니다.</p><p id="live-follow-note" class="muted"></p><div id="live-chats" tabindex="0" aria-label="라이브 채팅" style="height:360px;overflow:auto;overscroll-behavior:contain"></div></div>
+<div><h3>자동 편집 후보 <span id="live-candidate-count">0</span>개</h3><p class="muted">후보를 누르면 그 시각의 저장 채팅을 확인할 수 있습니다.</p><div id="live-markers" style="max-height:420px;overflow:auto"></div></div></div>
+<section id="live-context" hidden><h3 id="live-context-title">선택 구간 채팅</h3><p class="muted">방송 전체를 영상으로 되감는 기능은 제공하지 않습니다. 아래는 저장된 채팅입니다.</p><div id="live-context-chats" style="max-height:320px;overflow:auto"></div></section>
+</div>
+</section>
+<section class="card" aria-live="polite">
+<div class="status"><span class="dot"></span><strong id="phase">준비됨</strong></div>
+<p id="message" class="muted">영상 URL을 입력하거나 샘플 데이터로 체험해 보세요.</p>
+<progress id="progress" value="0" max="100" hidden></progress>
+<p id="error" class="error"></p>
+<div id="error-actions" class="actions" hidden><button id="dismiss-error" class="secondary">오류 메시지 닫기</button><button id="reload" class="secondary">화면 다시 연결</button></div>
+<div class="actions"><button id="login-ready" hidden>로그인 완료 · 계속하기</button><button id="cancel" class="secondary" hidden>현재 작업 중단</button></div>
+</section>
+<div class="grid">
+<section class="card"><h2>저장한 작업</h2>
+<div class="actions"><button id="hide-history" class="secondary">저장 목록 비우기</button><button id="restore-history" class="secondary">숨긴 작업 다시 표시</button></div>
+<p id="history-note" class="muted" role="status">다시보기·라이브를 목록에서만 숨깁니다. 채팅·TXT는 보관됩니다.</p>
+<div id="sessions"><p class="empty">아직 저장된 작업이 없습니다.</p></div></section>
+<section class="card">
+<h2 id="result-title">편집 후보</h2><p id="result-note" class="muted">수집과 분석이 끝나면 후보와 다운로드 파일이 여기에 표시됩니다.</p>
+<div id="downloads" class="links"></div>
+<canvas id="chart" width="800" height="130" hidden aria-label="영상 시간에 따른 유효 채팅 수"></canvas>
+<section id="chat-panel" hidden aria-label="선택한 편집 후보 채팅">
+<h3 id="chat-title">구간 채팅</h3><p id="chat-note" class="muted"></p>
+<div class="watch-grid"><div>
+<video id="vod" controls playsinline preload="metadata" aria-label="다시보기 플레이어"></video>
+<p id="player-status" role="status">후보를 선택하면 영상이 연결됩니다.</p>
+<div class="watch-tools"><strong id="play-time">00:00:00</strong><label>배속 <select id="play-speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><button id="refresh-video" class="secondary">재생 연결 새로고침</button></div>
+<div id="chat-links" class="links"></div><p id="chat-error" class="error" role="alert"></p>
+</div><div><label><input id="follow-chat" type="checkbox" checked> 재생 시간에 맞춰 채팅 따라가기</label>
+<div id="chat-list" tabindex="0" aria-label="구간 채팅 목록"></div>
+<button id="more-chats" class="secondary" hidden>채팅 더 보기</button>
+</div></div>
+</section>
+<div id="markers"></div>
+</section>
+</div>
+<small>편집 후보는 채팅 반응에 따른 추천입니다. 영상은 스트리밍으로 재생하며 파일로 저장하지 않습니다. AI는 사용자가 미리보기를 확인하고 실행한 경우에만 연결합니다.</small>
+</main>
+<script src="/vendor/hls.min.js"></script><script src="/player.js"></script>
+<script>
+const key="__TOKEN__";
+const $=id=>document.getElementById(id);
+let latestRun=null, autoRun=null, sessionsCache=[], busy=false, selectedMarker=null, chatVersion=0, nextOffset=null, localError="", serverError="", dismissedServerError="", sessionSignature="", runRequest=0;
+let syncRows=[],syncBucket=null,syncRequest=0,syncTruncated=false,lastSyncAttempt=-Infinity,activeChat=null;
+const phases={idle:"준비됨",starting:"준비 중",login:"시청 계정 연결",collecting:"채팅 저장 중",analyzing:"편집점 분석 중",done:"완료",paused:"중단됨",error:"확인이 필요합니다"};
+async function api(path, data){
+  let response;
+  try{response=await fetch("/api/"+path,{method:data===undefined?"GET":"POST",headers:{"X-CzzEdit-Key":key,"Content-Type":"application/json"},body:data===undefined?undefined:JSON.stringify(data),signal:AbortSignal.timeout(20000)});}
+  catch(error){throw new Error("로컬 앱 서버에 연결하지 못했습니다. 실행한 터미널에서 CzzEdit이 켜져 있는지 확인한 뒤 ‘화면 다시 연결’을 눌러 주세요. 요청: "+path.split("/")[0]);}
+  if(response.status===403)throw new Error("화면의 연결 정보가 만료되었거나 접근이 거부되었습니다. ‘화면 다시 연결’을 누른 뒤 다시 시도해 주세요.");
+  let result;try{result=await response.json();}catch(error){throw new Error("앱 서버 응답을 읽지 못했습니다. ‘화면 다시 연결’을 눌러 주세요.");}
+  if(!response.ok)throw new Error(result.error||"요청을 완료하지 못했습니다.");return result;
+}
+function stamp(ms){let s=Math.floor(ms/1000);const h=Math.floor(s/3600);s%=3600;return [h,Math.floor(s/60),s%60].map(n=>String(n).padStart(2,"0")).join(":");}
+function node(tag,text,cls){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;}
+function link(label,path){const el=node("a",label,"download");el.href="/files/"+path+"?key="+key;el.download="";return el;}
+function action(label,fn){const el=node("button",label,"secondary");el.disabled=busy;el.onclick=()=>fn().catch(showError);return el;}
+function renderError(){$("error").textContent=localError||serverError;$("error-actions").hidden=!(localError||serverError);}
+function showError(error){localError=error.message;renderError();}
+$("dismiss-error").onclick=()=>{localError="";dismissedServerError=serverError;serverError="";renderError();};
+$("reload").onclick=()=>location.reload();
+function options(){return {viewer_adaptive:$("viewer-adaptive")?.checked||false,include_comments:$("include-comments")?.checked??true,sensitive:$("sensitive").checked,login:$("login").checked};}
+async function start(command,data){await api(command,data);localError="";serverError="";dismissedServerError="";renderError();await poll();}
+$("collect-form").onsubmit=e=>{e.preventDefault();if($("url").value.includes('/live/')){$("live-url").value=$("url").value;$("live-url").focus();showError(new Error("라이브 URL을 아래 라이브 입력칸으로 옮겼습니다. 실시간 수집 시작을 눌러 주세요."));return;}start("collect",{url:$("url").value,...options()}).catch(showError);};
+$("demo").onclick=()=>start("demo",options()).catch(showError);
+$("cancel").onclick=()=>api("cancel",{}).catch(showError);
+$("login-ready").onclick=()=>api("login-ready",{}).catch(showError);
+async function changeHistory(restore){
+  $("hide-history").disabled=true;$("restore-history").disabled=true;
+  try{
+    const result=await api(restore?"history/restore":"history/hide",{});
+    if(!restore){
+      runRequest++;chatVersion++;syncRequest++;latestRun=null;selectedMarker=null;
+      player.reset();syncRows=[];syncBucket=null;$("chat-panel").hidden=true;$("chart").hidden=true;
+      $("downloads").replaceChildren();$("markers").replaceChildren();
+      $("result-title").textContent="편집 후보";$("result-note").textContent="숨긴 작업을 다시 표시하면 기존 결과를 열 수 있습니다.";
+      window.CzzV2?.reset();window.CzzLive?.reset();
+    }
+    $("history-note").textContent=result.changed+"개 작업을 "+(restore?"다시 표시합니다.":"목록에서 숨겼습니다. 채팅·TXT는 그대로 보관됩니다.");
+    sessionSignature="";await poll();
+  }catch(error){$("history-note").textContent=error.message;}
+  finally{$("hide-history").disabled=false;$("restore-history").disabled=false;}
+}
+$("hide-history").onclick=()=>changeHistory(false);
+$("restore-history").onclick=()=>changeHistory(true);
+function renderSessions(list){
+  const signature=JSON.stringify([list,busy]);if(signature===sessionSignature)return;sessionSignature=signature;
+  sessionsCache=list;$("sessions").replaceChildren();
+  if(!list.length)$("sessions").append(node("p","아직 저장된 작업이 없습니다.","empty"));
+  for(const s of list){
+    const row=node("div",undefined,"job");row.append(node("strong",s.title));
+    row.append(node("p",s.count.toLocaleString()+"건 · "+(s.state==="finished"?"조회 종료":"부분 수집")+" · "+stamp(s.duration_ms),"muted"));
+    if(s.issues.length)row.append(node("p","조회 경계에 불확실한 구간이 있습니다.","error"));
+    const actions=node("div",undefined,"actions");
+    if(s.timelines?.length)actions.append(action("통합 타임라인",()=>CzzV2.show(s.timelines[0].id)));
+    if(s.runs.length)actions.append(action("결과 보기",()=>showRun(s.runs[0].id)));
+    if(s.state!=="finished"&&s.video_id!=="demo")actions.append(action("이어받기",()=>start("collect",{url:"https://chzzk.naver.com/video/"+s.video_id,resume:s.id,...options()})));
+    actions.append(action("다시 분석",()=>start("analyze",{session_id:s.id,...options()})));
+    row.append(actions);$("sessions").append(row);
+  }
+}
+async function showRun(id){
+  const request=++runRequest;const run=await api("runs/"+id);if(request!==runRequest)return;latestRun=id;
+  selectedMarker=null;chatVersion++;syncRequest++;player.reset();syncRows=[];syncBucket=null;$("chat-panel").hidden=true;
+  const source=sessionsCache.find(s=>s.id===run.session_id);
+  $("result-title").textContent="편집 후보 "+run.markers.length+"개";
+  $("result-note").textContent=(source?source.title+" · ":"")+"영상 재생 시간 기준 · 수집 완전성 미확인";
+  const prefix=run.session_id+"/"+id+"/";
+  $("downloads").replaceChildren(link("채팅 TXT",run.session_id+"/chat.txt"),link("편집점 TXT",prefix+"timeline.txt"),link("편집점 CSV",prefix+"timeline.csv"),link("원문 JSONL",run.session_id+"/chat.jsonl"),link("수집 상태",run.session_id+"/manifest.json"));
+  $("markers").replaceChildren();
+  if(!run.markers.length)$("markers").append(node("p","조건을 만족한 편집 후보가 없습니다. 채팅 TXT를 확인하거나 민감도를 바꿔 다시 분석해 보세요.","empty"));
+  for(const m of run.markers){
+    const card=node("article",undefined,"marker");card.dataset.marker=m.id;
+    const heading=node("h3");const title=node("button",stamp(m.clip_start_ms)+" — "+stamp(m.clip_end_ms),"marker-title");
+    title.title="앱 안에서 해당 구간 재생 및 채팅 보기";
+    title.onclick=()=>selectMarker(id,m);heading.append(title);card.append(heading);
+    card.append(node("p",m.reasons.join(" · ")));
+    card.append(node("p","정점 "+stamp(m.peak_ms)+" · 유효 채팅 "+m.peak_stats.n+"건 · 작성자 "+m.peak_stats.u+"명","muted"));
+    card.append(node("p",(m.baseline_ready?"기준선 확보":"기준 학습 중인 임시 후보")+(m.partial_context?" · 앞뒤 문맥 부족":""),"muted"));
+    const controls=node("div",undefined,"links");const chats=node("button","영상·채팅 보기","secondary");chats.onclick=()=>selectMarker(id,m);
+    controls.append(chats,link("근거 채팅 TXT",prefix+"markers/"+m.id+".txt"));card.append(controls);$("markers").append(card);
+  }
+  const canvas=$("chart");canvas.hidden=false;const ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,800,130);const windows=run.windows;const max=windows.reduce((n,w)=>Math.max(n,w.n),1);
+  ctx.strokeStyle="#95e6af";ctx.lineWidth=2;ctx.beginPath();
+  windows.forEach((w,i)=>{const x=i/Math.max(1,windows.length-1)*800,y=120-w.n/max*110;if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.stroke();
+  if(window.CzzV2)await CzzV2.forRun(id,request);
+}
+function sourcePath(rid){return rid.startsWith("timeline:")?"timelines/"+rid.slice(9):"runs/"+rid;}
+function videoLink(label,url){const a=node("a",label,"download");a.href=url;a.target="_blank";a.rel="noopener noreferrer";return a;}
+const player=new CzzPlayback.VodPlayer($("vod"),window.Hls,rid=>api(sourcePath(rid)+"/playback"),
+  (ms,event)=>{if(!selectedMarker||!selectedMarker.marker.video_url)return;$("play-time").textContent=stamp(ms);syncChats(ms,event==='seeking'||event==='seeked');},
+  (message,error=false)=>{$("player-status").textContent=message;$("player-status").className=error?"error":"muted";});
+$("play-speed").onchange=()=>{$("vod").defaultPlaybackRate=Number($("play-speed").value);$("vod").playbackRate=Number($("play-speed").value);};
+$("follow-chat").onchange=()=>highlightChats($("vod").currentTime*1000,true);
+$("refresh-video").onclick=()=>{if(selectedMarker)player.open(selectedMarker.rid,player.ready?$("vod").currentTime:player.pending,true);};
+function seekButton(label,ms){const button=node("button",label,"secondary");button.onclick=()=>player.seek(ms/1000);return button;}
+function highlightChats(ms,force=false){
+  const index=CzzPlayback.activeIndex(syncRows,ms),current=syncRows[index]?.event_id;
+  const rows=$("chat-list").children;
+  for(let i=0;i<rows.length;i++){rows[i].classList.toggle("current",i===index);rows[i].classList.toggle("future",syncRows[i]?.time_ms>ms);}
+  if($("follow-chat").checked&&index>=0&&(current!==activeChat||force)){
+    const row=rows[index],list=$("chat-list");list.scrollTop+=row.getBoundingClientRect().top-list.getBoundingClientRect().top-list.clientHeight*.55;
+  }
+  activeChat=current;
+}
+async function syncChats(ms,force=false){
+  if(!selectedMarker)return;
+  highlightChats(ms);
+  const bucket=Math.floor(ms/10000),now=performance.now();
+  const nearEdge=syncTruncated&&(!syncRows.length||ms>syncRows[syncRows.length-1].time_ms||ms<syncRows[0].time_ms);
+  if(!force&&bucket===syncBucket&&!nearEdge)return;
+  if(!force&&now-lastSyncAttempt<1000)return;
+  syncBucket=bucket;lastSyncAttempt=now;
+  const request=++syncRequest,selection=selectedMarker;
+  try{
+    const data=await api(sourcePath(selection.rid)+"/chats?time_ms="+Math.max(0,Math.floor(ms)));
+    if(request!==syncRequest||selection!==selectedMarker)return;
+    syncRows=data.chats;syncTruncated=data.truncated;activeChat=null;
+    const evidence=new Set(selection.marker.evidence_ids);$("chat-list").replaceChildren();
+    for(const e of syncRows){const row=node("div",undefined,"chat-row"+(evidence.has(e.event_id)?" evidence":""));
+      const time=seekButton(stamp(e.time_ms),e.time_ms);time.className="chat-time";
+      row.append(time,node("span",(e.author_key?e.author_key.slice(0,8):"작성자 미상")+(evidence.has(e.event_id)?" · 판정 근거":""),"chat-author"),node("div",e.content));$("chat-list").append(row);
+    }
+    $("chat-note").textContent="재생 위치 앞뒤 30초의 저장 채팅 · "+syncRows.length+"건"+(data.truncated?" · 혼잡 구간은 현재 위치 가까운 300건 표시":"")+" · 강조된 채팅은 선택 후보의 판정 근거입니다.";
+    if(ms>=data.source_end_ms)$("chat-note").textContent="저장된 채팅 범위가 끝났습니다.";
+    if(!syncRows.length)$("chat-list").append(node("p","이 시간대에 저장된 채팅이 없습니다.","muted"));
+    $("chat-error").textContent="";highlightChats(player.ready?$("vod").currentTime*1000:ms,true);
+  }catch(error){if(request===syncRequest){syncBucket=null;$("chat-error").textContent=error.message;}}
+}
+async function selectMarker(rid,marker){
+  const version=++chatVersion;selectedMarker={rid,marker};nextOffset=null;
+  $("chat-panel").hidden=false;$("chat-title").textContent=stamp(marker.clip_start_ms)+" — "+stamp(marker.clip_end_ms)+" 구간 채팅";
+  $("chat-note").textContent="채팅을 불러오는 중입니다…";$("chat-list").replaceChildren();$("chat-links").replaceChildren();$("chat-error").textContent="";$("more-chats").hidden=true;
+  document.querySelectorAll(".marker").forEach(el=>el.classList.toggle("selected",el.dataset.marker===marker.id));
+  $("chat-panel").scrollIntoView({block:"start",behavior:"smooth"});
+  syncRequest++;syncRows=[];syncBucket=null;activeChat=null;
+  if(marker.video_url){
+    $("vod").hidden=false;$("refresh-video").disabled=false;
+    $("chat-links").append(seekButton("구간 시작",marker.clip_start_ms),seekButton("반응 정점",marker.peak_ms),videoLink("치지직에서 열기",marker.video_url));
+    player.open(rid,marker.clip_start_ms/1000);syncChats(marker.clip_start_ms,true);
+  }else if(rid.startsWith("timeline:")){player.reset();$("vod").hidden=true;await syncChats(marker.clip_start_ms,true);}
+  else{player.reset();$("vod").hidden=true;$("refresh-video").disabled=true;$("player-status").textContent="샘플 채팅에는 연결된 영상이 없습니다.";await loadChats(version,0);}
+}
+async function loadChats(version,offset){
+  const selection=selectedMarker;if(!selection)return;$("more-chats").disabled=true;
+  try{
+    const data=await api("runs/"+selection.rid+"/markers/"+selection.marker.id+"?offset="+offset);
+    if(version!==chatVersion)return;
+    if(offset===0){
+      if(data.video_url)$("chat-links").append(videoLink("구간 시작에서 다시보기",data.video_url),videoLink("반응 정점에서 다시보기",data.peak_url));
+      else $("chat-links").append(node("span","샘플 데이터에는 연결된 영상이 없습니다.","muted"));
+    }
+    for(const e of data.chats){const row=node("div",undefined,"chat-row"+(e.is_evidence?" evidence":""));
+      if(e.video_url)row.append(videoLink(stamp(e.time_ms),e.video_url));else row.append(node("span",stamp(e.time_ms)+" "));
+      row.append(node("span",(e.author_key?e.author_key.slice(0,8):"작성자 미상")+(e.is_evidence?" · 판정 근거":""),"chat-author"),node("div",e.content));$("chat-list").append(row);
+    }
+    nextOffset=data.next_offset;$("more-chats").hidden=nextOffset===null;
+    $("chat-note").textContent="총 "+data.total.toLocaleString()+"건 중 "+$("chat-list").children.length.toLocaleString()+"건 · 강조된 채팅은 판정 근거입니다.";
+    if(!data.total)$("chat-list").append(node("p","이 구간에 저장된 채팅이 없습니다.","muted"));
+    $("chat-error").textContent="";
+  }catch(error){if(version===chatVersion){$("chat-error").textContent=error.message;$("chat-note").textContent="채팅을 불러오지 못했습니다. 후보를 다시 선택해 주세요.";}}
+  finally{if(version===chatVersion)$("more-chats").disabled=false;}
+}
+$("more-chats").onclick=()=>{if(nextOffset!==null)loadChats(chatVersion,nextOffset);};
+async function poll(){
+  const status=await api("status");busy=status.busy;
+  $("phase").textContent=phases[status.phase]||status.phase;
+  $("message").textContent=status.message||(status.position_ms!==undefined?stamp(status.position_ms)+" / "+stamp(status.duration_ms||status.position_ms)+(status.pages?" · "+status.pages+"페이지 저장":""):"작업을 준비하고 있습니다.");
+  const messageError=status.phase==="error"?status.message:status.output_error;
+  if(messageError&&messageError!==dismissedServerError)serverError=messageError;renderError();
+  $("progress").hidden=!busy||!status.duration_ms;
+  $("progress").value=Math.min(100,(status.position_ms||0)/(status.duration_ms||1)*100);
+  $("collect").disabled=busy;$("demo").disabled=busy;
+  $("cancel").hidden=!busy;$("login-ready").hidden=status.phase!=="login";
+  renderSessions(await api("sessions"));
+  const visibleResult=sessionsCache.some(s=>s.id===status.session_id);
+  if(visibleResult&&!window.CzzLive?.focused()&&status.phase==="done"&&status.timeline_id&&status.timeline_id!==autoRun&&window.CzzV2){await CzzV2.show(status.timeline_id);autoRun=status.timeline_id;}
+  else if(visibleResult&&!window.CzzLive?.focused()&&status.phase==="done"&&!status.timeline_id&&status.run_id&&status.run_id!==autoRun){await showRun(status.run_id);autoRun=status.run_id;}
+}
+async function tick(){try{await poll();}catch(error){showError(error);}finally{setTimeout(tick,2000);}}
+tick();
+</script>
+<script src="/v2.js"></script>
+<script src="/live.js"></script>
+</body>
+</html>

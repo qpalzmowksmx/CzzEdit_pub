@@ -1,0 +1,2 @@
+# Optional. Public VOD collection and analysis use the Python standard library.
+playwright>=1.50,<2

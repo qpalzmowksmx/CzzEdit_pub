@@ -1,0 +1,2 @@
+# Anonymous LIVE WebSocket transport (installed only inside .venv).
+websocket-client==1.9.0
